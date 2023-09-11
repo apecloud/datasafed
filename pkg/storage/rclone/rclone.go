@@ -106,7 +106,6 @@ func (s *rcloneStorage) Rmdir(ctx context.Context, rpath string) error {
 }
 
 func (s *rcloneStorage) list(ctx context.Context, rpath string, opt *storage.ListOptions, callback func(item *operations.ListJSONItem) error) error {
-	rpath = normalizeRemotePath(rpath)
 	ljOpt := &operations.ListJSONOpt{}
 	if opt != nil {
 		ljOpt.Recurse = opt.Recursive
@@ -122,8 +121,15 @@ func (s *rcloneStorage) list(ctx context.Context, rpath string, opt *storage.Lis
 }
 
 func (s *rcloneStorage) List(ctx context.Context, rpath string, opt *storage.ListOptions) ([]storage.DirEntry, error) {
+	rpath = normalizeRemotePath(rpath)
+	obj, err := s.f.NewObject(ctx, rpath)
+	if err == nil {
+		entry := storage.NewStaticDirEntry(false, filepath.Base(obj.Remote()),
+			obj.Remote(), obj.Size(), obj.ModTime(ctx))
+		return []storage.DirEntry{entry}, nil
+	}
 	var result []storage.DirEntry
-	err := s.list(ctx, rpath, opt, func(item *operations.ListJSONItem) error {
+	err = s.list(ctx, rpath, opt, func(item *operations.ListJSONItem) error {
 		en := storage.NewStaticDirEntry(item.IsDir, item.Name, item.Path, item.Size, item.ModTime.When)
 		result = append(result, en)
 		return nil
@@ -132,11 +138,21 @@ func (s *rcloneStorage) List(ctx context.Context, rpath string, opt *storage.Lis
 }
 
 func (s *rcloneStorage) Stat(ctx context.Context, rpath string) (storage.StatResult, error) {
+	rpath = normalizeRemotePath(rpath)
+	obj, err := s.f.NewObject(ctx, rpath)
+	if err == nil {
+		return storage.StatResult{
+			TotalSize: obj.Size(),
+			Entries:   1,
+			Files:     1,
+		}, nil
+	}
+
 	opt := &storage.ListOptions{
 		Recursive: true,
 	}
 	var result storage.StatResult
-	err := s.list(ctx, rpath, opt, func(item *operations.ListJSONItem) error {
+	err = s.list(ctx, rpath, opt, func(item *operations.ListJSONItem) error {
 		if item.IsBucket {
 			// ignore buckets
 			return nil
@@ -155,7 +171,7 @@ func (s *rcloneStorage) Stat(ctx context.Context, rpath string) (storage.StatRes
 
 func normalizeRemotePath(rpath string) string {
 	rpath = filepath.Clean(rpath)
-	rpath = strings.TrimSuffix(rpath, "./")
+	rpath = strings.TrimPrefix(rpath, "./")
 	rpath = strings.TrimPrefix(rpath, "/")
 	if rpath == "." {
 		// rclone doesn't accept "." as a remote path
