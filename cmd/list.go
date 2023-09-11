@@ -38,8 +38,24 @@ func init() {
 	opts := &listOptions{}
 	cmd := &cobra.Command{
 		Use:   "list [-d|-f] [-r] [--max-depth depth] [-s sortBy] [--reverse] [--newer-than time] [--older-than time] [--name pattern] [-o outputFormat] rpath",
-		Short: "List contents of a directory",
-		Args:  cobra.ExactArgs(1),
+		Short: "List contents of a remote directory or file.",
+		Example: strings.TrimSpace(`
+# List the root directory
+repocli list /
+
+# List one file and extract its size
+repocli list somefile.txt -o long | awk '{print $2}'
+
+# List all files under the directory
+repocli list -r -f /some/dir
+
+# List files modified within 1 hour and sort the result by size
+repocli list -r -f -s size --newer-than $(( $(date +%s) - 3600 )) /some/dir
+
+# List files with the name pattern
+repocli list --name "*.txt" /some/dir
+`),
+		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			doList(opts, cmd, args)
 		},

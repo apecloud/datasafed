@@ -78,27 +78,4 @@ echo "hello" | repocli push - hello.txt
 
 ### Commands
 
-TODO: generate docs
-
-```
-Usage:
-  repocli [command]
-
-Available Commands:
-  completion  Generate the autocompletion script for the specified shell
-  getconf     Get the value of the configuration item
-  help        Help about any command
-  list        List contents of a directory
-  pull        Pull remote file
-  push        Push file to remote
-  rm          Remove a file, or all files in a directory
-  rmdir       Remove an empty directory
-  stat        Print statistics about a remote path
-  version     Show version of repocli
-
-Flags:
-  -c, --conf string   config file (default "/etc/repocli/repocli.conf")
-  -h, --help          help for repocli
-
-Use "repocli [command] --help" for more information about a command.
-```
+See [docs/repocli.md](docs/repocli.md) for details and examples.

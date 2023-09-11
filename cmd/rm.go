@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -14,8 +15,15 @@ func init() {
 	opts := &rmOptions{}
 	cmd := &cobra.Command{
 		Use:   "rm [-r] rpath",
-		Short: "Remove a file, or all files in a directory",
-		Args:  cobra.ExactArgs(1),
+		Short: "Remove one remote file, or all files in a remote directory.",
+		Example: strings.TrimSpace(`
+# Remove a single file
+repocli rm some/path/to/file.txt
+
+# Recursively remove a directory
+repocli rm -r some/path/to/dir
+`),
+		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			doRm(opts, cmd, args)
 		},

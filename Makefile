@@ -52,8 +52,11 @@ build: repocli ## Build binaries.
 .PHONY: repocli
 repocli: ## Build repocli.
 	mkdir -p $(BUILD_DIR)
-	go build -v -o $(BUILD_DIR)/repocli -tags $(BUILD_TAGS) -ldflags $(LD_FLAGS) .
+	$(GO) build -v -o $(BUILD_DIR)/repocli -tags $(BUILD_TAGS) -ldflags $(LD_FLAGS) .
 
+.PHONY: docgen
+docgen: ## Generate documents.
+	$(GO) generate ./hack/docgen/...
 
 ##@ General
 

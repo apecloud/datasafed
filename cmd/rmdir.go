@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -9,9 +10,13 @@ import (
 func init() {
 	cmd := &cobra.Command{
 		Use:   "rmdir rpath",
-		Short: "Remove an empty directory",
-		Args:  cobra.ExactArgs(1),
-		Run:   doRmdir,
+		Short: "Remove an empty remote directory.",
+		Example: strings.TrimSpace(`
+# Remove an empty directory
+repocli rmdir some/dir
+`),
+		Args: cobra.ExactArgs(1),
+		Run:  doRmdir,
 	}
 	rootCmd.AddCommand(cmd)
 }

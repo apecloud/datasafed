@@ -19,7 +19,10 @@ const (
 )
 
 var (
-	rootCmd = &cobra.Command{Use: "repocli"}
+	rootCmd = &cobra.Command{
+		Use:   "repocli subcommand",
+		Short: "`repocli` is a command line tool for managing remote storages.",
+	}
 
 	configFile       string
 	doNotInitStorage bool
@@ -35,6 +38,12 @@ func init() {
 	}
 	rootCmd.PersistentFlags().StringVarP(&configFile, "conf", "c",
 		"/etc/repocli/repocli.conf", "config file")
+}
+
+// RootCommand returns the root command.
+// It is used by docgen.
+func RootCommand() *cobra.Command {
+	return rootCmd
 }
 
 func exitIfError(err error) {

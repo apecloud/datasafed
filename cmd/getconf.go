@@ -12,9 +12,17 @@ import (
 func init() {
 	cmd := &cobra.Command{
 		Use:   "getconf item",
-		Short: "Get the value of the configuration item",
-		Args:  cobra.ExactArgs(1),
-		Run:   doGetconf,
+		Short: "Get the value of the configuration item.",
+		Long:  "The pattern of the `item` parameter is \"section.field\".",
+		Example: strings.TrimSpace(`
+# get the "type" field from the "storage" section
+repocli getconf storage.type
+
+# get access_key_id (only available for S3 backend)
+repocli getconf storage.access_key_id
+`),
+		Args: cobra.ExactArgs(1),
+		Run:  doGetconf,
 	}
 	rootCmd.AddCommand(cmd)
 }

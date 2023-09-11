@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"runtime"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -16,9 +17,13 @@ type versionOptions struct {
 func init() {
 	opts := &versionOptions{}
 	cmd := &cobra.Command{
-		Use:   "version",
-		Short: "Show version of repocli",
-		Args:  cobra.NoArgs,
+		Use:   "version [--verbose]",
+		Short: "Show version of repocli.",
+		Example: strings.TrimSpace(`
+# Show version
+repocli version
+`),
+		Args: cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			doVersion(opts, cmd, args)
 		},
