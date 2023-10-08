@@ -16,7 +16,7 @@ import (
 	"github.com/rclone/rclone/fs/config"
 	"github.com/rclone/rclone/fs/operations"
 
-	"github.com/apecloud/repocli/pkg/storage"
+	"github.com/apecloud/datasafed/pkg/storage"
 )
 
 const (

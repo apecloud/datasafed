@@ -1,4 +1,4 @@
-## repocli getconf
+## datasafed getconf
 
 Get the value of the configuration item.
 
@@ -7,17 +7,17 @@ Get the value of the configuration item.
 The pattern of the `item` parameter is "section.field".
 
 ```
-repocli getconf item [flags]
+datasafed getconf item [flags]
 ```
 
 ### Examples
 
 ```
 # get the "type" field from the "storage" section
-repocli getconf storage.type
+datasafed getconf storage.type
 
 # get access_key_id (only available for S3 backend)
-repocli getconf storage.access_key_id
+datasafed getconf storage.access_key_id
 ```
 
 ### Options
@@ -29,10 +29,10 @@ repocli getconf storage.access_key_id
 ### Options inherited from parent commands
 
 ```
-  -c, --conf string   config file (default "/etc/repocli/repocli.conf")
+  -c, --conf string   config file (default "/etc/datasafed/datasafed.conf")
 ```
 
 ### SEE ALSO
 
-* [repocli](repocli.md)	 - `repocli` is a command line tool for managing remote storages.
+* [datasafed](datasafed.md)	 - `datasafed` is a command line tool for managing remote storages.
 

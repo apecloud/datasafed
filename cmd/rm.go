@@ -18,10 +18,10 @@ func init() {
 		Short: "Remove one remote file, or all files in a remote directory.",
 		Example: strings.TrimSpace(`
 # Remove a single file
-repocli rm some/path/to/file.txt
+datasafed rm some/path/to/file.txt
 
 # Recursively remove a directory
-repocli rm -r some/path/to/dir
+datasafed rm -r some/path/to/dir
 `),
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {

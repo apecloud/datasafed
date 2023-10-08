@@ -13,7 +13,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/apecloud/repocli/pkg/storage"
+	"github.com/apecloud/datasafed/pkg/storage"
 )
 
 var (
@@ -41,19 +41,19 @@ func init() {
 		Short: "List contents of a remote directory or file.",
 		Example: strings.TrimSpace(`
 # List the root directory
-repocli list /
+datasafed list /
 
 # List one file and extract its size
-repocli list somefile.txt -o long | awk '{print $2}'
+datasafed list somefile.txt -o long | awk '{print $2}'
 
 # List all files under the directory
-repocli list -r -f /some/dir
+datasafed list -r -f /some/dir
 
 # List files modified within 1 hour and sort the result by size
-repocli list -r -f -s size --newer-than $(( $(date +%s) - 3600 )) /some/dir
+datasafed list -r -f -s size --newer-than $(( $(date +%s) - 3600 )) /some/dir
 
 # List files with the name pattern
-repocli list --name "*.txt" /some/dir
+datasafed list --name "*.txt" /some/dir
 `),
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {

@@ -9,7 +9,7 @@ import (
 const (
 	StorageSection = "storage"
 
-	localBackendPathEnv = "REPOCLI_LOCAL_BACKEND_PATH"
+	localBackendPathEnv = "DATASAFED_LOCAL_BACKEND_PATH"
 )
 
 var (

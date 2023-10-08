@@ -1,19 +1,19 @@
-## repocli rm
+## datasafed rm
 
 Remove one remote file, or all files in a remote directory.
 
 ```
-repocli rm [-r] rpath [flags]
+datasafed rm [-r] rpath [flags]
 ```
 
 ### Examples
 
 ```
 # Remove a single file
-repocli rm some/path/to/file.txt
+datasafed rm some/path/to/file.txt
 
 # Recursively remove a directory
-repocli rm -r some/path/to/dir
+datasafed rm -r some/path/to/dir
 ```
 
 ### Options
@@ -26,10 +26,10 @@ repocli rm -r some/path/to/dir
 ### Options inherited from parent commands
 
 ```
-  -c, --conf string   config file (default "/etc/repocli/repocli.conf")
+  -c, --conf string   config file (default "/etc/datasafed/datasafed.conf")
 ```
 
 ### SEE ALSO
 
-* [repocli](repocli.md)	 - `repocli` is a command line tool for managing remote storages.
+* [datasafed](datasafed.md)	 - `datasafed` is a command line tool for managing remote storages.
 

@@ -8,20 +8,20 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/apecloud/repocli/pkg/config"
-	"github.com/apecloud/repocli/pkg/storage"
-	"github.com/apecloud/repocli/pkg/storage/rclone"
+	"github.com/apecloud/datasafed/pkg/config"
+	"github.com/apecloud/datasafed/pkg/storage"
+	"github.com/apecloud/datasafed/pkg/storage/rclone"
 )
 
 const (
 	rootKey            = "root"
-	backendBasePathEnv = "REPOCLI_BACKEND_BASE_PATH"
+	backendBasePathEnv = "DATASAFED_BACKEND_BASE_PATH"
 )
 
 var (
 	rootCmd = &cobra.Command{
-		Use:   "repocli subcommand",
-		Short: "`repocli` is a command line tool for managing remote storages.",
+		Use:   "datasafed",
+		Short: "`datasafed` is a command line tool for managing remote storages.",
 	}
 
 	configFile       string
@@ -37,7 +37,7 @@ func init() {
 		return initStorage()
 	}
 	rootCmd.PersistentFlags().StringVarP(&configFile, "conf", "c",
-		"/etc/repocli/repocli.conf", "config file")
+		"/etc/datasafed/datasafed.conf", "config file")
 }
 
 // RootCommand returns the root command.

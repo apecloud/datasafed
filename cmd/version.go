@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/apecloud/repocli/version"
+	"github.com/apecloud/datasafed/version"
 )
 
 type versionOptions struct {
@@ -18,10 +18,10 @@ func init() {
 	opts := &versionOptions{}
 	cmd := &cobra.Command{
 		Use:   "version [--verbose]",
-		Short: "Show version of repocli.",
+		Short: "Show version of datasafed.",
 		Example: strings.TrimSpace(`
 # Show version
-repocli version
+datasafed version
 `),
 		Args: cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -37,7 +37,7 @@ repocli version
 }
 
 func doVersion(opts *versionOptions, cmd *cobra.Command, args []string) {
-	fmt.Printf("repocli: %s\n", version.Version)
+	fmt.Printf("datasafed: %s\n", version.Version)
 	if opts.verbose {
 		fmt.Printf("  BuildDate: %s\n", version.BuildDate)
 		fmt.Printf("  GitCommit: %s\n", version.GitCommit)

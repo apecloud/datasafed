@@ -1,4 +1,4 @@
-module github.com/apecloud/repocli
+module github.com/apecloud/datasafed
 
 go 1.21
 

@@ -13,7 +13,7 @@ func init() {
 		Short: "Remove an empty remote directory.",
 		Example: strings.TrimSpace(`
 # Remove an empty directory
-repocli rmdir some/dir
+datasafed rmdir some/dir
 `),
 		Args: cobra.ExactArgs(1),
 		Run:  doRmdir,

@@ -21,10 +21,10 @@ func init() {
 		Long:  "It counts files and dirs in the path and calculates the total size recursively.",
 		Example: strings.TrimSpace(`
 # Stat a file
-repocli stat path/to/file.txt
+datasafed stat path/to/file.txt
 
 # Stat a directory with json output
-repocli stat -json path/to/dir
+datasafed stat -json path/to/dir
 `),
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {

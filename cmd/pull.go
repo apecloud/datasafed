@@ -18,10 +18,10 @@ func init() {
 		Long:  "The `lpath` parameter can be \"-\" to write to stdout.",
 		Example: strings.TrimSpace(`
 # Pull the file and save it to a local path
-repocli pull some/path/file.txt /tmp/file.txt
+datasafed pull some/path/file.txt /tmp/file.txt
 
 # Pull the file and print it to stdout
-repocli pull some/path/file.txt - | wc -l
+datasafed pull some/path/file.txt - | wc -l
 `),
 		Args: cobra.ExactArgs(2),
 		Run:  doPull,

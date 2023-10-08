@@ -17,10 +17,10 @@ func init() {
 		Long:  "The `lpath` parameter can be '-' to read from stdin.",
 		Example: strings.TrimSpace(`
 # Push a file to remote
-repocli push local/path/a.txt remote/path/a.txt
+datasafed push local/path/a.txt remote/path/a.txt
 
 # Upload data from stdin
-repocli push - remote/path/somefile.txt
+datasafed push - remote/path/somefile.txt
 `),
 		Args: cobra.ExactArgs(2),
 		Run:  doPush,

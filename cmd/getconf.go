@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/apecloud/repocli/pkg/config"
+	"github.com/apecloud/datasafed/pkg/config"
 )
 
 func init() {
@@ -16,10 +16,10 @@ func init() {
 		Long:  "The pattern of the `item` parameter is \"section.field\".",
 		Example: strings.TrimSpace(`
 # get the "type" field from the "storage" section
-repocli getconf storage.type
+datasafed getconf storage.type
 
 # get access_key_id (only available for S3 backend)
-repocli getconf storage.access_key_id
+datasafed getconf storage.access_key_id
 `),
 		Args: cobra.ExactArgs(1),
 		Run:  doGetconf,

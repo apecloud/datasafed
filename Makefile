@@ -1,7 +1,7 @@
 ##############################################################################
 # Variables
 ##############################################################################
-APP_NAME = repocli
+APP_NAME = datasafed
 VERSION ?= 0.1.0
 GITHUB_PROXY ?=
 GIT_COMMIT  = $(shell git rev-list -1 HEAD)
@@ -34,10 +34,10 @@ export GOPROXY
 
 BUILD_TAGS ?= ""
 LD_FLAGS = "-s -w \
-	-X github.com/apecloud/repocli/version.BuildDate=`date -u +'%Y-%m-%dT%H:%M:%SZ'` \
-	-X github.com/apecloud/repocli/version.GitCommit=$(GIT_COMMIT) \
-	-X github.com/apecloud/repocli/version.GitVersion=$(GIT_VERSION) \
-	-X github.com/apecloud/repocli/version.Version=$(VERSION)"
+	-X github.com/apecloud/datasafed/version.BuildDate=`date -u +'%Y-%m-%dT%H:%M:%SZ'` \
+	-X github.com/apecloud/datasafed/version.GitCommit=$(GIT_COMMIT) \
+	-X github.com/apecloud/datasafed/version.GitVersion=$(GIT_VERSION) \
+	-X github.com/apecloud/datasafed/version.Version=$(VERSION)"
 
 ##############################################################################
 # Targets
@@ -47,12 +47,12 @@ LD_FLAGS = "-s -w \
 default: help
 
 .PHONY: build
-build: repocli ## Build binaries.
+build: datasafed ## Build binaries.
 
-.PHONY: repocli
-repocli: ## Build repocli.
+.PHONY: datasafed
+datasafed: ## Build datasafed.
 	mkdir -p $(BUILD_DIR)
-	$(GO) build -v -o $(BUILD_DIR)/repocli -tags $(BUILD_TAGS) -ldflags $(LD_FLAGS) .
+	$(GO) build -v -o $(BUILD_DIR)/datasafed -tags $(BUILD_TAGS) -ldflags $(LD_FLAGS) .
 
 .PHONY: docgen
 docgen: ## Generate documents.

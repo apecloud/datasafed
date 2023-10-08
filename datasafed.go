@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/apecloud/repocli/cmd"
+	"github.com/apecloud/datasafed/cmd"
 )
 
 func main() {

@@ -36,14 +36,14 @@ RUN --mount=type=bind,target=. \
     --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     go env && \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} BUILD_DIR=/out make repocli
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} BUILD_DIR=/out make datasafed
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM ${DIST_IMG} as dist
 
 WORKDIR /
-COPY --from=builder /out/repocli .
+COPY --from=builder /out/datasafed .
 USER 65532:65532
 
-ENTRYPOINT ["/repocli"]
+ENTRYPOINT ["/datasafed"]

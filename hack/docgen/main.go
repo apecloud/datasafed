@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/apecloud/repocli/cmd"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
+
+	"github.com/apecloud/datasafed/cmd"
 )
 
 //go:generate go run .
