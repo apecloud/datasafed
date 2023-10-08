@@ -1,6 +1,9 @@
 name: Release Image
 
 on:
+  push:
+    tags:
+      - v*
   workflow_dispatch:
     inputs:
       image-tag:
@@ -8,12 +11,31 @@ on:
         required: false
         default: 'latest'
 
+env:
+  RELEASE_VERSION: ${{ github.ref_name }}
+
 jobs:
+  image-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      tag-name: ${{ steps.get_tag_name.outputs.tag_name }}
+    steps:
+      - name: Get Tag Name
+        id: get_tag_name
+        run: |
+          TAG_NAME="${{ inputs.image-tag }}"
+          if [[ -z "${TAG_NAME}" ]]; then
+              RELEASE_VERSION=${GITHUB_REF#refs/tags/}
+              TAG_NAME=${RELEASE_VERSION}
+          fi
+          echo tag_name=$TAG_NAME >> $GITHUB_OUTPUT
+
   release-image:
+    needs: [ image-tag ]
     uses: apecloud/apecloud-cd/.github/workflows/release-image-cache.yml@v0.1.32
     with:
       IMG: "apecloud/datasafed"
-      VERSION: "${{ inputs.image-tag }}"
+      VERSION: "${{ needs.image-tag.outputs.tag-name }}"
       GO_VERSION: "1.21"
       APECD_REF: "v0.1.32"
       DOCKERFILE_PATH: "./Dockerfile"
