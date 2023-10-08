@@ -1,0 +1,20 @@
+name: Release Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      image-tag:
+        description: "The tag of docker image"
+        required: false
+        default: 'latest'
+
+jobs:
+  release-image:
+    uses: apecloud/apecloud-cd/.github/workflows/release-image-cache.yml@v0.1.32
+    with:
+      IMG: "apecloud/datasafed"
+      VERSION: "${{ inputs.image-tag }}"
+      GO_VERSION: "1.21"
+      APECD_REF: "v0.1.32"
+      DOCKERFILE_PATH: "./Dockerfile"
+    secrets: inherit
