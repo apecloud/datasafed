@@ -1,5 +1,5 @@
 # Build the manager binary
-ARG DIST_IMG=gcr.io/distroless/static:nonroot
+ARG DIST_IMG=alpine:3.18
 
 ARG GO_VERSION=1.21
 
@@ -38,8 +38,6 @@ RUN --mount=type=bind,target=. \
     go env && \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} BUILD_DIR=/out make datasafed
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM ${DIST_IMG} as dist
 
 WORKDIR /
