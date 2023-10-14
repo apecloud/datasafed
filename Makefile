@@ -52,7 +52,7 @@ build: datasafed ## Build binaries.
 .PHONY: datasafed
 datasafed: ## Build datasafed.
 	mkdir -p $(BUILD_DIR)
-	$(GO) build -v -o $(BUILD_DIR)/datasafed -tags $(BUILD_TAGS) -ldflags $(LD_FLAGS) .
+	CGO_ENABLED=0 $(GO) build -v -o $(BUILD_DIR)/datasafed -tags $(BUILD_TAGS) -ldflags $(LD_FLAGS) .
 
 .PHONY: docgen
 docgen: ## Generate documents.

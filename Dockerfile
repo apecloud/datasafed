@@ -42,6 +42,7 @@ FROM ${DIST_IMG} as dist
 
 WORKDIR /
 COPY --from=builder /out/datasafed .
+COPY ./docker/scripts /scripts
 USER 65532:65532
 
 ENTRYPOINT ["/datasafed"]
