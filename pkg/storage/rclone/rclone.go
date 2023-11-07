@@ -84,6 +84,15 @@ func (s *rcloneStorage) Pull(ctx context.Context, rpath string, w io.Writer) err
 	return err
 }
 
+func (s *rcloneStorage) ReadObject(ctx context.Context, rpath string) (io.ReadCloser, error) {
+	rpath = normalizeRemotePath(rpath)
+	obj, err := s.f.NewObject(ctx, rpath)
+	if err != nil {
+		return nil, err
+	}
+	return obj.Open(ctx)
+}
+
 func (s *rcloneStorage) Remove(ctx context.Context, rpath string, recursive bool) error {
 	rpath = normalizeRemotePath(rpath)
 	if !recursive {

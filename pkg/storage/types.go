@@ -56,6 +56,9 @@ type Storage interface {
 	// Stat returns the information about the given path.
 	// The `rpath` parameter can be a file.
 	Stat(ctx context.Context, rpath string) (StatResult, error)
+
+	// ReadObject reads a file.
+	ReadObject(ctx context.Context, rpath string) (io.ReadCloser, error)
 }
 
 type staticDirEntry struct {
