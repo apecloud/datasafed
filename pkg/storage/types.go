@@ -48,6 +48,9 @@ type Storage interface {
 	// Rmdir removes the directory in the given path only if the directory is empty.
 	Rmdir(ctx context.Context, rpath string) error
 
+	// Mkdir makes a directory.
+	Mkdir(ctx context.Context, rpath string) error
+
 	// List lists the contents of the given path.
 	// The `rpath` parameter can also be a file, in this case the function
 	// will return a list with a single entry.
