@@ -114,6 +114,11 @@ func (s *rcloneStorage) Rmdir(ctx context.Context, rpath string) error {
 	return s.f.Rmdir(ctx, rpath)
 }
 
+func (s *rcloneStorage) Mkdir(ctx context.Context, rpath string) error {
+	rpath = normalizeRemotePath(rpath)
+	return s.f.Mkdir(ctx, rpath)
+}
+
 func (s *rcloneStorage) list(ctx context.Context, rpath string, opt *storage.ListOptions, callback func(item *operations.ListJSONItem) error) error {
 	ljOpt := &operations.ListJSONOpt{}
 	if opt != nil {
