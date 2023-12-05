@@ -1,11 +1,34 @@
 package config
 
 import (
+	"strings"
+
+	"github.com/rclone/rclone/fs/config/obscure"
 	"gopkg.in/ini.v1"
+)
+
+const (
+	ProcessorObscure = ".need_obscure"
 )
 
 type Config struct {
 	cfg *ini.File
+}
+
+func newConfig(cfg *ini.File) *Config {
+	sections := cfg.Sections()
+	for _, sec := range sections {
+		for _, k := range sec.Keys() {
+			key := k.Name()
+			if strings.HasSuffix(key, ProcessorObscure) {
+				// replace the KV with the obscured version
+				newKey := strings.TrimSuffix(key, ProcessorObscure)
+				sec.NewKey(newKey, obscure.MustObscure(k.Value()))
+				sec.DeleteKey(key)
+			}
+		}
+	}
+	return &Config{cfg: cfg}
 }
 
 func NewConfig(path string) (*Config, error) {
@@ -13,7 +36,7 @@ func NewConfig(path string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Config{cfg: cfg}, nil
+	return newConfig(cfg), nil
 }
 
 func NewStaticConfig(content map[string]map[string]string) (*Config, error) {
@@ -29,7 +52,7 @@ func NewStaticConfig(content map[string]map[string]string) (*Config, error) {
 			}
 		}
 	}
-	return &Config{cfg: cfg}, nil
+	return newConfig(cfg), nil
 }
 
 func (c *Config) Get(section string, key string) (string, bool) {
