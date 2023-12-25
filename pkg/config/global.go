@@ -25,8 +25,9 @@ func InitGlobal(configFile string) error {
 	if localBackendPath != "" {
 		global, err = NewStaticConfig(map[string]map[string]string{
 			StorageSection: {
-				"type": "local",
-				"root": localBackendPath,
+				"type":       "local",
+				"copy_links": "true",
+				"root":       localBackendPath,
 			},
 		})
 	} else {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -12,12 +12,17 @@ import (
 	"github.com/apecloud/datasafed/pkg/config"
 	"github.com/apecloud/datasafed/pkg/logging"
 	"github.com/apecloud/datasafed/pkg/storage"
+	"github.com/apecloud/datasafed/pkg/storage/kopia"
 	"github.com/apecloud/datasafed/pkg/storage/rclone"
 )
 
 const (
-	rootKey            = "root"
-	backendBasePathEnv = "DATASAFED_BACKEND_BASE_PATH"
+	backendBasePathEnv   = "DATASAFED_BACKEND_BASE_PATH"
+	kopiaRepoRootEnv     = "DATASAFED_KOPIA_REPO_ROOT"
+	kopiaPasswordEnv     = "DATASAFED_KOPIA_PASSWORD"
+	kopiaDisableCacheEnv = "DATASAFED_KOPIA_DISABLE_CACHE"
+	kopiaMaintenanceEnv  = "DATASAFED_KOPIA_MAINTENANCE"
+	kopiaSafetyEnv       = "DATASAFED_KOPIA_SAFETY"
 )
 
 var (
@@ -75,39 +80,58 @@ func initStorage() error {
 		return err
 	}
 
+	basePath := strings.TrimSpace(os.Getenv(backendBasePathEnv))
 	storageConf := config.GetGlobal().GetAll(config.StorageSection)
-	adjustRoot(storageConf)
-	var err error
-	globalStorage, err = rclone.New(storageConf)
+
+	if kopiaRoot := strings.TrimSpace(os.Getenv(kopiaRepoRootEnv)); kopiaRoot != "" {
+		return initKopiaStorage(storageConf, basePath, kopiaRoot)
+	} else {
+		st, err := createStorage(storageConf, basePath)
+		if err != nil {
+			return err
+		}
+		globalStorage = st
+		return nil
+	}
+}
+
+func initKopiaStorage(storageConf map[string]string, basePath, kopiaRoot string) error {
+	underlying, err := createStorage(storageConf, "")
 	if err != nil {
 		return err
+	}
+	kopia.SetUnderlyingStorage(underlying)
+	storageConf[kopia.RepoRootKey] = kopiaRoot
+	storageConf[kopia.PasswordKey] = strings.TrimSpace(os.Getenv(kopiaPasswordEnv))
+	storageConf[kopia.DisableCacheKey] = strings.TrimSpace(os.Getenv(kopiaDisableCacheEnv))
+	st, err := kopia.New(appCtx, storageConf, basePath)
+	if err != nil {
+		return err
+	}
+	globalStorage = st
+
+	maintenance := os.Getenv(kopiaMaintenanceEnv)
+	if ok, _ := strconv.ParseBool(maintenance); ok {
+		onFinish(func() {
+			err := kopia.RunMaintenance(appCtx, globalStorage, os.Getenv(kopiaSafetyEnv))
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "RunMaintenance() failed, err: %v\n", err)
+			}
+		})
 	}
 	return nil
 }
 
-func adjustRoot(storageConf map[string]string) {
-	basePath := os.Getenv(backendBasePathEnv)
-	if basePath == "" {
-		return
+func createStorage(conf map[string]string, basePath string) (storage.Storage, error) {
+	cloneConf := make(map[string]string, len(conf))
+	for k, v := range conf {
+		cloneConf[k] = v
 	}
-	basePath = filepath.Clean(basePath)
-	if strings.HasPrefix(basePath, "..") {
-		exitIfError(fmt.Errorf("invalid base path %q from env %s",
-			os.Getenv(backendBasePathEnv), backendBasePathEnv))
-	}
-	if basePath == "." {
-		basePath = ""
-	} else {
-		basePath = strings.TrimPrefix(basePath, "/")
-		basePath = strings.TrimPrefix(basePath, "./")
-	}
-	root := storageConf[rootKey]
-	if strings.HasSuffix(root, "/") {
-		root = root + basePath
-	} else {
-		root = root + "/" + basePath
-	}
-	storageConf[rootKey] = root
+	return rclone.New(appCtx, cloneConf, basePath)
+}
+
+func onFinish(fn func()) {
+	onFinishFuncs = append(onFinishFuncs, fn)
 }
 
 func Execute() {
