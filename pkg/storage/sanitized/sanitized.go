@@ -2,6 +2,7 @@ package sanitized
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -117,30 +118,30 @@ func (s *sanitizedStorage) adjustPath(ctx context.Context, e storage.DirEntry) s
 	return storage.NewStaticDirEntry(e.IsDir(), e.Name(), final, e.Size(), e.MTime())
 }
 
-func (s *sanitizedStorage) List(ctx context.Context, rpath string, opt *storage.ListOptions) ([]storage.DirEntry, error) {
+func (s *sanitizedStorage) List(ctx context.Context, rpath string, opt *storage.ListOptions, cb storage.ListCallback) error {
 	if opt.PathIsFile && strings.HasSuffix(rpath, "/") {
-		return nil, fmt.Errorf("rpath %q ends with '/', but PathIsFile is true", rpath)
+		return fmt.Errorf("rpath %q ends with '/', but PathIsFile is true", rpath)
 	}
+	originalRpath := rpath
 	isDir := strings.HasSuffix(rpath, "/")
 	rpath, err := s.relocate(rpath)
 	if err != nil {
-		return nil, fmt.Errorf("invalid rpath %q: %w", rpath, err)
+		return fmt.Errorf("invalid rpath %q: %w", rpath, err)
 	}
 	if isDir {
 		rpath += "/"
 	}
-	cloneOpt := *opt
-	if cloneOpt.Callback != nil {
-		original := cloneOpt.Callback
-		cloneOpt.Callback = func(e storage.DirEntry) error {
-			return original(s.adjustPath(ctx, e))
+	myCb := func(e storage.DirEntry) error {
+		return cb(s.adjustPath(ctx, e))
+	}
+	err = s.underlying.List(ctx, rpath, opt, myCb)
+	if errors.Is(err, storage.ErrDirNotFound) {
+		if originalRpath == "/" || originalRpath == "." {
+			// ignore directory not found error for root directory
+			return nil
 		}
 	}
-	entries, err := s.underlying.List(ctx, rpath, &cloneOpt)
-	for i := range entries {
-		entries[i] = s.adjustPath(ctx, entries[i])
-	}
-	return entries, err
+	return err
 }
 
 func (s *sanitizedStorage) Stat(ctx context.Context, rpath string) (storage.StatResult, error) {

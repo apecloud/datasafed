@@ -27,8 +27,9 @@ type ListOptions struct {
 	MaxDepth   int
 	Recursive  bool
 	PathIsFile bool
-	Callback   func(DirEntry) error
 }
+
+type ListCallback func(DirEntry) error
 
 type StatResult struct {
 	TotalSize int64
@@ -64,10 +65,8 @@ type Storage interface {
 	// The `rpath` parameter can also be a file, in this case the function
 	// will return a list with a single entry.
 	// It's recommended to add '/' to the end of `rpath` if it points to a directory.
-	// If a `Callback` is specified in the `ListOptions`, it will be called
-	// for each entry. In this case, the method returns an empty list. If the
-	// callback returns an error, the function will stop and return the error.
-	List(ctx context.Context, rpath string, opt *ListOptions) ([]DirEntry, error)
+	// If the callback returns an error, the function will stop and return the error.
+	List(ctx context.Context, rpath string, opt *ListOptions, cb ListCallback) error
 
 	// Stat returns the information about the given path.
 	// The `rpath` parameter can be a file.

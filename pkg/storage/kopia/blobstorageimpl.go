@@ -65,17 +65,20 @@ func (b *blobStorageImpl) GetBlobFromPath(ctx context.Context, dirPath, filePath
 
 func (b *blobStorageImpl) GetMetadataFromPath(ctx context.Context, dirPath, filePath string) (blob.Metadata, error) {
 	log(ctx).Debugf("GetMetadata dir %s file %s", dirPath, filePath)
-	entries, err := b.s.List(ctx, filePath, &storage.ListOptions{PathIsFile: true})
+	var entry storage.DirEntry
+	err := b.s.List(ctx, filePath, &storage.ListOptions{PathIsFile: true}, func(en storage.DirEntry) error {
+		entry = en
+		return nil
+	})
 	if err != nil {
 		if errors.Is(err, storage.ErrObjectNotFound) {
 			return blob.Metadata{}, blob.ErrBlobNotFound
 		}
 		return blob.Metadata{}, fmt.Errorf("fail to OpenFile, err: %w", err)
 	}
-	if len(entries) != 1 {
-		return blob.Metadata{}, fmt.Errorf("expect List() to return single entry for path %s, got %d", filePath, len(entries))
+	if entry == nil {
+		return blob.Metadata{}, blob.ErrBlobNotFound
 	}
-	entry := entries[0]
 	return blob.Metadata{
 		Length:    entry.Size(),
 		Timestamp: entry.MTime(),
@@ -116,18 +119,15 @@ func (b *blobStorageImpl) DeleteBlobInPath(ctx context.Context, dirPath, filePat
 func (b *blobStorageImpl) ReadDir(ctx context.Context, path string) ([]os.FileInfo, error) {
 	log(ctx).Debugf("ReadDir path %s", path)
 	var fileInfos []os.FileInfo
-	_, err := b.s.List(ctx, path, &storage.ListOptions{
-		Recursive: false,
-		Callback: func(en storage.DirEntry) error {
-			info := fileInfo{
-				name:    en.Name(),
-				size:    en.Size(),
-				modTime: en.MTime(),
-				isDir:   en.IsDir(),
-			}
-			fileInfos = append(fileInfos, &info)
-			return nil
-		},
+	err := b.s.List(ctx, path, &storage.ListOptions{Recursive: false}, func(en storage.DirEntry) error {
+		info := fileInfo{
+			name:    en.Name(),
+			size:    en.Size(),
+			modTime: en.MTime(),
+			isDir:   en.IsDir(),
+		}
+		fileInfos = append(fileInfos, &info)
+		return nil
 	})
 	return fileInfos, err
 }

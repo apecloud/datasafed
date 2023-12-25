@@ -88,7 +88,7 @@ func reportSnapshotStatus(ctx context.Context, manifest *snapshot.Manifest) erro
 		}
 
 		if ds.FatalErrorCount > 0 {
-			return fmt.Errorf("Found %v fatal error(s) while snapshotting %v.", ds.FatalErrorCount, sourceInfo) //nolint:revive
+			return fmt.Errorf("found %v fatal error(s) while snapshotting %v", ds.FatalErrorCount, sourceInfo) //nolint:revive
 		}
 	}
 

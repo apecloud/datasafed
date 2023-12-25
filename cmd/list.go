@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"bufio"
 	"cmp"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -64,8 +66,8 @@ datasafed list --name "*.txt" /some/dir/
 	pflags.BoolVarP(&opts.filesOnly, "files-only", "f", false, "list files only")
 	pflags.BoolVarP(&opts.recursive, "recursive", "r", false, "list recursively")
 	pflags.IntVar(&opts.maxDepth, "max-depth", 0, "max depth when listing recursively")
-	pflags.StringVarP(&opts.sort, "sort", "s", "path",
-		fmt.Sprintf("sort by which field, choices: %q", validSorts))
+	pflags.StringVarP(&opts.sort, "sort", "s", "",
+		fmt.Sprintf("sort by which field, choices: %q, this option conflicts with --recursive", validSorts))
 	pflags.BoolVar(&opts.reverse, "reverse", false, "reverse order")
 	pflags.Int64Var(&opts.newer, "newer-than", 0,
 		"list only entries whose last modification time is newer than the specified unix timestamp (exclusive)")
@@ -77,16 +79,41 @@ datasafed list --name "*.txt" /some/dir/
 		fmt.Sprintf("output format, choices: %q", validOutputFormats))
 
 	cmd.MarkFlagsMutuallyExclusive("dirs-only", "files-only")
+	cmd.MarkFlagsMutuallyExclusive("recursive", "sort")
 
 	rootCmd.AddCommand(cmd)
 }
 
 func doList(opts *listOptions, cmd *cobra.Command, args []string) {
-	if !slices.Contains(validSorts, opts.sort) {
+	if opts.sort != "" && !slices.Contains(validSorts, opts.sort) {
 		exitIfError(fmt.Errorf("invalid sort: %q", opts.sort))
 	}
 	if !slices.Contains(validOutputFormats, opts.format) {
 		exitIfError(fmt.Errorf("invalid output format: %q", opts.format))
+	}
+	bufStdout := bufio.NewWriterSize(os.Stdout, 8*1024)
+	filter := getFilterFn(opts)
+	printer := getPrinter(opts, bufStdout)
+	var cb func(storage.DirEntry) error
+	var entries []storage.DirEntry
+	if opts.recursive {
+		cb = func(entry storage.DirEntry) error {
+			if filter(entry) {
+				printer.printItem(entry)
+			}
+			return nil
+		}
+	} else {
+		cb = func(entry storage.DirEntry) error {
+			if filter(entry) {
+				entries = append(entries, entry)
+			}
+			return nil
+		}
+	}
+
+	if opts.recursive {
+		printer.printHeader()
 	}
 	rpath := args[0]
 	lopts := &storage.ListOptions{
@@ -95,39 +122,24 @@ func doList(opts *listOptions, cmd *cobra.Command, args []string) {
 		Recursive: opts.recursive,
 		MaxDepth:  opts.maxDepth,
 	}
-	entries, err := globalStorage.List(appCtx, rpath, lopts)
+	err := globalStorage.List(appCtx, rpath, lopts, cb)
 	exitIfError(err)
-
-	entries = filterEntries(entries, opts)
-	sortEntries(entries, opts)
-	switch opts.format {
-	case "short":
-		for _, entry := range entries {
-			fmt.Println(toPath(entry))
-		}
-	case "long":
-		for _, entry := range entries {
-			fmt.Printf("%s\t%d\t%s\n", entry.MTime().Format(time.RFC3339), entry.Size(), toPath(entry))
-		}
-	case "json":
-		if len(entries) == 0 {
-			fmt.Print("[]\n")
-		} else {
-			fmt.Print("[\n")
-			enc := json.NewEncoder(os.Stdout)
-			enc.SetIndent("  ", "  ")
-			first := true
-			for _, entry := range entries {
-				if !first {
-					fmt.Print("  ,\n")
-				}
-				first = false
-				fmt.Print("  ")
-				printJson(entry, enc)
-			}
-			fmt.Print("]\n")
-		}
+	if opts.recursive {
+		printer.printFooter()
 	}
+
+	if !opts.recursive {
+		sortEntries(entries, opts)
+		printer.printHeader()
+		for _, entry := range entries {
+			if filter(entry) {
+				printer.printItem(entry)
+			}
+		}
+		printer.printFooter()
+	}
+
+	bufStdout.Flush()
 }
 
 func toPath(entry storage.DirEntry) string {
@@ -136,6 +148,30 @@ func toPath(entry storage.DirEntry) string {
 		path += "/"
 	}
 	return path
+}
+
+func getFilterFn(opts *listOptions) func(entry storage.DirEntry) bool {
+	return func(entry storage.DirEntry) bool {
+		matchPattern := func(entry storage.DirEntry) bool { return true }
+		if opts.namePattern != "" {
+			matchPattern = func(entry storage.DirEntry) bool {
+				// ignore errors
+				matched, _ := filepath.Match(opts.namePattern, entry.Name())
+				return matched
+			}
+		}
+		mt := entry.MTime().Unix()
+		if opts.newer > 0 && opts.newer >= mt {
+			return false
+		}
+		if opts.older > 0 && opts.older <= mt {
+			return false
+		}
+		if !matchPattern(entry) {
+			return false
+		}
+		return true
+	}
 }
 
 func printJson(entry storage.DirEntry, enc *json.Encoder) {
@@ -155,33 +191,54 @@ func printJson(entry storage.DirEntry, enc *json.Encoder) {
 	})
 }
 
-func filterEntries(entries []storage.DirEntry, opts *listOptions) []storage.DirEntry {
-	matchPattern := func(entry storage.DirEntry) bool { return true }
-	if opts.namePattern != "" {
-		matchPattern = func(entry storage.DirEntry) bool {
-			// ignore errors
-			matched, _ := filepath.Match(opts.namePattern, entry.Name())
-			return matched
+func getPrinter(opts *listOptions, out io.Writer) *printer {
+	switch opts.format {
+	case "short":
+		return &printer{
+			printHeader: func() {},
+			printItem: func(entry storage.DirEntry) {
+				fmt.Fprintln(out, toPath(entry))
+			},
+			printFooter: func() {},
+		}
+	case "long":
+		return &printer{
+			printHeader: func() {},
+			printItem: func(entry storage.DirEntry) {
+				fmt.Fprintf(out, "%s\t%d\t%s\n", entry.MTime().Format(time.RFC3339), entry.Size(), toPath(entry))
+			},
+			printFooter: func() {},
+		}
+	case "json":
+		enc := json.NewEncoder(out)
+		enc.SetIndent("  ", "  ")
+		first := true
+		return &printer{
+			printHeader: func() {
+				fmt.Fprintf(out, "[")
+			},
+			printItem: func(entry storage.DirEntry) {
+				if first {
+					fmt.Fprintf(out, "\n")
+				} else if !first {
+					fmt.Fprintf(out, "  ,\n")
+				}
+				first = false
+				fmt.Fprintf(out, "  ")
+				printJson(entry, enc)
+			},
+			printFooter: func() {
+				fmt.Fprintf(out, "]\n")
+			},
 		}
 	}
-	var filtered []storage.DirEntry
-	for _, entry := range entries {
-		mt := entry.MTime().Unix()
-		if opts.newer > 0 && opts.newer >= mt {
-			continue
-		}
-		if opts.older > 0 && opts.older <= mt {
-			continue
-		}
-		if !matchPattern(entry) {
-			continue
-		}
-		filtered = append(filtered, entry)
-	}
-	return filtered
+	panic(fmt.Sprintf("unsupported format %s", opts.format))
 }
 
 func sortEntries(entries []storage.DirEntry, opts *listOptions) {
+	if opts.sort == "" {
+		opts.sort = "path"
+	}
 	var getter func(storage.DirEntry) any
 	var compare func(any, any) int
 	switch opts.sort {
@@ -214,4 +271,10 @@ func sortEntries(entries []storage.DirEntry, opts *listOptions) {
 		}
 		return cmpVal
 	})
+}
+
+type printer struct {
+	printHeader func()
+	printItem   func(entry storage.DirEntry)
+	printFooter func()
 }
