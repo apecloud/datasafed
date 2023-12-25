@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/apecloud/datasafed/pkg/config"
+	"github.com/apecloud/datasafed/pkg/logging"
 	"github.com/apecloud/datasafed/pkg/storage"
 	"github.com/apecloud/datasafed/pkg/storage/rclone"
 )
@@ -20,24 +22,39 @@ const (
 
 var (
 	rootCmd = &cobra.Command{
-		Use:   "datasafed",
-		Short: "`datasafed` is a command line tool for managing remote storages.",
+		Use:           "datasafed",
+		Short:         "`datasafed` is a command line tool for managing remote storages.",
+		SilenceErrors: true,
+		SilenceUsage:  true,
 	}
 
 	configFile       string
 	doNotInitStorage bool
 	globalStorage    storage.Storage
+	appCtx           context.Context = context.Background()
+	onFinishFuncs    []func()
 )
 
 func init() {
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		if doNotInitStorage {
-			return nil
+		appCtx = logging.WithLogger(appCtx, logging.DefaultLoggerFactory)
+		if !doNotInitStorage {
+			if err := initStorage(); err != nil {
+				return err
+			}
 		}
-		return initStorage()
+		return nil
+	}
+	rootCmd.PersistentPostRunE = func(cmd *cobra.Command, args []string) error {
+		for _, fn := range onFinishFuncs {
+			fn()
+		}
+		return nil
 	}
 	rootCmd.PersistentFlags().StringVarP(&configFile, "conf", "c",
 		"/etc/datasafed/datasafed.conf", "config file")
+
+	logging.Attach(rootCmd)
 }
 
 // RootCommand returns the root command.

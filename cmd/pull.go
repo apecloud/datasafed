@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"os"
@@ -51,7 +50,7 @@ func doPull(cmd *cobra.Command, args []string) {
 		defer f.Close()
 		out = f
 	}
-	err := globalStorage.Pull(context.Background(), rpath, out)
+	err := globalStorage.Pull(appCtx, rpath, out)
 	if err != nil {
 		err = fmt.Errorf("pull %q: %w", rpath, err)
 	}

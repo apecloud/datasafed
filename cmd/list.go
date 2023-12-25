@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"cmp"
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -46,14 +45,14 @@ datasafed list /
 # List one file and extract its size
 datasafed list somefile.txt -o long | awk '{print $2}'
 
-# List all files under the directory
-datasafed list -r -f /some/dir
+# List all files under the directory (ends with '/')
+datasafed list -r -f /some/dir/
 
 # List files modified within 1 hour and sort the result by size
-datasafed list -r -f -s size --newer-than $(( $(date +%s) - 3600 )) /some/dir
+datasafed list -r -f -s size --newer-than $(( $(date +%s) - 3600 )) /some/dir/
 
 # List files with the name pattern
-datasafed list --name "*.txt" /some/dir
+datasafed list --name "*.txt" /some/dir/
 `),
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -96,7 +95,7 @@ func doList(opts *listOptions, cmd *cobra.Command, args []string) {
 		Recursive: opts.recursive,
 		MaxDepth:  opts.maxDepth,
 	}
-	entries, err := globalStorage.List(context.Background(), rpath, lopts)
+	entries, err := globalStorage.List(appCtx, rpath, lopts)
 	exitIfError(err)
 
 	entries = filterEntries(entries, opts)

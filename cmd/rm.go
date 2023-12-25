@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -33,6 +32,6 @@ datasafed rm -r some/path/to/dir
 }
 
 func doRm(opts *rmOptions, cmd *cobra.Command, args []string) {
-	err := globalStorage.Remove(context.Background(), args[0], opts.recursive)
+	err := globalStorage.Remove(appCtx, args[0], opts.recursive)
 	exitIfError(err)
 }

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -23,8 +22,8 @@ func init() {
 # Stat a file
 datasafed stat path/to/file.txt
 
-# Stat a directory with json output
-datasafed stat -json path/to/dir
+# Stat a directory (ends with '/') with json output
+datasafed stat -json path/to/dir/
 `),
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -37,7 +36,7 @@ datasafed stat -json path/to/dir
 
 func doStat(opts *statOptions, cmd *cobra.Command, args []string) {
 	rpath := args[0]
-	result, err := globalStorage.Stat(context.Background(), rpath)
+	result, err := globalStorage.Stat(appCtx, rpath)
 	exitIfError(err)
 	if !opts.json {
 		fmt.Printf("TotalSize: %d\n", result.TotalSize)
