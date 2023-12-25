@@ -157,7 +157,7 @@ func (s *rcloneStorage) list(ctx context.Context, rpath string, opt *storage.Lis
 	return operations.ListJSON(ctx, s.f, rpath, ljOpt, callback)
 }
 
-func (s *rcloneStorage) List(ctx context.Context, rpath string, opt *storage.ListOptions) ([]storage.DirEntry, error) {
+func (s *rcloneStorage) List(ctx context.Context, rpath string, opt *storage.ListOptions, cb storage.ListCallback) error {
 	log(ctx).Infof("[RCLONE] List %s, options %+v", rpath, opt)
 	rpath = normalizeRemotePath(rpath)
 
@@ -173,41 +173,28 @@ func (s *rcloneStorage) List(ctx context.Context, rpath string, opt *storage.Lis
 		if err == nil {
 			entry := storage.NewStaticDirEntry(false, filepath.Base(obj.Remote()),
 				obj.Remote(), obj.Size(), obj.ModTime(ctx))
-			if opt.Callback != nil {
-				err = opt.Callback(entry)
-				if err != nil {
-					return nil, fmt.Errorf("interrupted by error: %w", err)
-				}
-				return nil, nil
-			}
-			return []storage.DirEntry{entry}, nil
+			return cb(entry)
 		}
 	}
 
 	if opt.PathIsFile {
 		if errors.Is(err, fs.ErrorObjectNotFound) {
-			return nil, storage.ErrObjectNotFound
+			return storage.ErrObjectNotFound
 		}
 		if strings.HasSuffix(rpath, "/") {
-			return nil, storage.ErrIsDir
+			return storage.ErrIsDir
 		}
-		return nil, err
+		return err
 	}
 
-	var result []storage.DirEntry
 	err = s.list(ctx, rpath, opt, func(item *operations.ListJSONItem) error {
 		en := storage.NewStaticDirEntry(item.IsDir, item.Name, item.Path, item.Size, item.ModTime.When)
-		if opt.Callback != nil {
-			return opt.Callback(en)
-		} else {
-			result = append(result, en)
-		}
-		return nil
+		return cb(en)
 	})
-	if errors.Is(err, fs.ErrorDirNotFound) {
-		return nil, storage.ErrDirNotFound
+	if errors.Is(err, fs.ErrorDirNotFound) || os.IsNotExist(err) {
+		return storage.ErrDirNotFound
 	}
-	return result, err
+	return err
 }
 
 func (s *rcloneStorage) Stat(ctx context.Context, rpath string) (storage.StatResult, error) {

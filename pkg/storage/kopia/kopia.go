@@ -219,27 +219,25 @@ func (s *kopiaStorage) Remove(ctx context.Context, rpath string, recursive bool)
 	}
 
 	dirStack := []string{rpath}
+	cb := func(en storage.DirEntry) error {
+		log(ctx).Debugf("listing %q, is dir: %v", en.Path(), en.IsDir())
+		if en.IsDir() {
+			dirStack = append(dirStack, en.Path())
+			return nil
+		}
+		// remove the current listed file
+		if strings.HasSuffix(en.Name(), metaSuffix) {
+			path := strings.TrimSuffix(en.Path(), metaSuffix)
+			err := s.Remove(ctx, path, false)
+			return util.WrappedErrOrNil(err, "fail to remove %q", path)
+		} else {
+			log(ctx).Warnf("listing non meta file %q", en.Path())
+			return nil
+		}
+	}
 
 	// list the dir to remove files and record dirs in order
-	if _, err := s.underlying.List(ctx, rpath, &storage.ListOptions{
-		Recursive: true,
-		Callback: func(en storage.DirEntry) error {
-			log(ctx).Debugf("listing %q, is dir: %v", en.Path(), en.IsDir())
-			if en.IsDir() {
-				dirStack = append(dirStack, en.Path())
-				return nil
-			}
-			// remove the current listed file
-			if strings.HasSuffix(en.Name(), metaSuffix) {
-				path := strings.TrimSuffix(en.Path(), metaSuffix)
-				err := s.Remove(ctx, path, false)
-				return util.WrappedErrOrNil(err, "fail to remove %q", path)
-			} else {
-				log(ctx).Warnf("listing non meta file %q", en.Path())
-				return nil
-			}
-		},
-	}); err != nil {
+	if err := s.underlying.List(ctx, rpath, &storage.ListOptions{Recursive: true}, cb); err != nil {
 		return err
 	}
 
@@ -264,7 +262,7 @@ func (s *kopiaStorage) Mkdir(ctx context.Context, rpath string) error {
 	return s.underlying.Mkdir(ctx, rpath)
 }
 
-func (s *kopiaStorage) List(ctx context.Context, rpath string, opt *storage.ListOptions) ([]storage.DirEntry, error) {
+func (s *kopiaStorage) List(ctx context.Context, rpath string, opt *storage.ListOptions, cb storage.ListCallback) error {
 	log(ctx).Infof("[KOPIA] List %s, options: %+v", rpath, opt)
 
 	var err error
@@ -272,28 +270,18 @@ func (s *kopiaStorage) List(ctx context.Context, rpath string, opt *storage.List
 		meta, err := s.loadMeta(ctx, rpath)
 		if err == nil {
 			en := storage.NewStaticDirEntry(false, filepath.Base(rpath), rpath, meta.Size, meta.ModTime)
-			if opt.Callback != nil {
-				err := opt.Callback(en)
-				if err != nil {
-					return nil, fmt.Errorf("interrupted by error: %w", err)
-				}
-				return nil, nil
-			}
-			return []storage.DirEntry{en}, nil
+			return cb(en)
 		}
 	}
 
 	if opt.PathIsFile {
 		if strings.HasSuffix(rpath, "/") {
-			return nil, storage.ErrIsDir
+			return storage.ErrIsDir
 		}
-		return nil, err
+		return err
 	}
 
-	callback := opt.Callback
-	var result []storage.DirEntry
-	cloneOpt := *opt
-	cloneOpt.Callback = func(en storage.DirEntry) error {
+	myCb := func(en storage.DirEntry) error {
 		if !en.IsDir() {
 			if strings.HasSuffix(en.Name(), metaSuffix) {
 				filePath := strings.TrimSuffix(en.Path(), metaSuffix)
@@ -308,15 +296,9 @@ func (s *kopiaStorage) List(ctx context.Context, rpath string, opt *storage.List
 				return nil
 			}
 		}
-		if callback != nil {
-			return callback(en)
-		} else {
-			result = append(result, en)
-			return nil
-		}
+		return cb(en)
 	}
-	_, err = s.underlying.List(ctx, rpath, &cloneOpt)
-	return result, err
+	return s.underlying.List(ctx, rpath, opt, myCb)
 }
 
 func (s *kopiaStorage) Stat(ctx context.Context, rpath string) (storage.StatResult, error) {
@@ -334,18 +316,18 @@ func (s *kopiaStorage) Stat(ctx context.Context, rpath string) (storage.StatResu
 	var result storage.StatResult
 	opt := &storage.ListOptions{
 		Recursive: true,
-		Callback: func(en storage.DirEntry) error {
-			if en.IsDir() {
-				result.Dirs++
-			} else {
-				result.Files++
-				result.TotalSize += en.Size()
-			}
-			return nil
-		},
+	}
+	cb := func(en storage.DirEntry) error {
+		if en.IsDir() {
+			result.Dirs++
+		} else {
+			result.Files++
+			result.TotalSize += en.Size()
+		}
+		return nil
 	}
 
-	_, err = s.List(ctx, rpath, opt)
+	err = s.List(ctx, rpath, opt, cb)
 	result.Entries = result.Dirs + result.Files
 	return result, err
 }

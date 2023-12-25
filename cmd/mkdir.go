@@ -8,8 +8,9 @@ import (
 
 func init() {
 	cmd := &cobra.Command{
-		Use: "mkdir rpath",
-		Short: "Create an empty remote directory." +
+		Use:   "mkdir rpath",
+		Short: "Create an empty remote directory.",
+		Long: "Remove an empty remote directory.\n" +
 			"Some storage backends, such as S3, do not have the concept of a directory, " +
 			"in which case the command will directly return success with no effect.",
 		Example: strings.TrimSpace(`

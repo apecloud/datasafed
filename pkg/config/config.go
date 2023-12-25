@@ -23,7 +23,9 @@ func newConfig(cfg *ini.File) *Config {
 			if strings.HasSuffix(key, ProcessorObscure) {
 				// replace the KV with the obscured version
 				newKey := strings.TrimSuffix(key, ProcessorObscure)
-				sec.NewKey(newKey, obscure.MustObscure(k.Value()))
+				if _, err := sec.NewKey(newKey, obscure.MustObscure(k.Value())); err != nil {
+					panic(err)
+				}
 				sec.DeleteKey(key)
 			}
 		}
