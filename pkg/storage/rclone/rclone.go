@@ -16,7 +16,9 @@ import (
 	"github.com/rclone/rclone/fs/config"
 	"github.com/rclone/rclone/fs/operations"
 
+	"github.com/apecloud/datasafed/pkg/logging"
 	"github.com/apecloud/datasafed/pkg/storage"
+	"github.com/apecloud/datasafed/pkg/storage/sanitized"
 )
 
 const (
@@ -24,25 +26,28 @@ const (
 	rootKey    = "root"
 )
 
+var log = logging.Module("storage/rclone")
+
 type rcloneStorage struct {
 	f fs.Fs
 }
 
 var _ storage.Storage = (*rcloneStorage)(nil)
 
-func New(cfg map[string]string) (storage.Storage, error) {
+func New(ctx context.Context, cfg map[string]string, basePath string) (storage.Storage, error) {
 	rcloneCfg := config.Data()
 	for k, v := range cfg {
 		rcloneCfg.SetValue(remoteName, k, v)
 	}
 	root := cfg[rootKey]
-	f, err := fs.NewFs(context.Background(), remoteName+":"+root)
+	f, err := fs.NewFs(ctx, remoteName+":"+root)
 	if err != nil {
 		return nil, err
 	}
-	return &rcloneStorage{
+	s := &rcloneStorage{
 		f: f,
-	}, nil
+	}
+	return sanitized.New(ctx, basePath, s)
 }
 
 func (s *rcloneStorage) Push(ctx context.Context, r io.Reader, rpath string) error {
@@ -73,6 +78,9 @@ func (s *rcloneStorage) Pull(ctx context.Context, rpath string, w io.Writer) err
 	rpath = normalizeRemotePath(rpath)
 	obj, err := s.f.NewObject(ctx, rpath)
 	if err != nil {
+		if errors.Is(err, fs.ErrorObjectNotFound) {
+			return storage.ErrObjectNotFound
+		}
 		return err
 	}
 	rc, err := obj.Open(ctx)
@@ -84,13 +92,23 @@ func (s *rcloneStorage) Pull(ctx context.Context, rpath string, w io.Writer) err
 	return err
 }
 
-func (s *rcloneStorage) ReadObject(ctx context.Context, rpath string) (io.ReadCloser, error) {
+func (s *rcloneStorage) OpenFile(ctx context.Context, rpath string, offset, length int64) (io.ReadCloser, error) {
 	rpath = normalizeRemotePath(rpath)
 	obj, err := s.f.NewObject(ctx, rpath)
 	if err != nil {
+		if errors.Is(err, fs.ErrorObjectNotFound) {
+			return nil, storage.ErrObjectNotFound
+		}
 		return nil, err
 	}
-	return obj.Open(ctx)
+	rangeOpt := fs.RangeOption{Start: 0, End: -1}
+	if offset > 0 {
+		rangeOpt.Start = offset
+	}
+	if length > 0 {
+		rangeOpt.End = offset + (length - 1)
+	}
+	return obj.Open(ctx, &rangeOpt)
 }
 
 func (s *rcloneStorage) Remove(ctx context.Context, rpath string, recursive bool) error {
@@ -111,7 +129,11 @@ func (s *rcloneStorage) Remove(ctx context.Context, rpath string, recursive bool
 
 func (s *rcloneStorage) Rmdir(ctx context.Context, rpath string) error {
 	rpath = normalizeRemotePath(rpath)
-	return s.f.Rmdir(ctx, rpath)
+	err := s.f.Rmdir(ctx, rpath)
+	if errors.Is(err, fs.ErrorDirNotFound) || os.IsNotExist(err) {
+		return nil
+	}
+	return err
 }
 
 func (s *rcloneStorage) Mkdir(ctx context.Context, rpath string) error {
@@ -131,42 +153,81 @@ func (s *rcloneStorage) list(ctx context.Context, rpath string, opt *storage.Lis
 			ci.MaxDepth = opt.MaxDepth
 		}
 	}
+	rpath = strings.TrimSuffix(rpath, "/")
 	return operations.ListJSON(ctx, s.f, rpath, ljOpt, callback)
 }
 
 func (s *rcloneStorage) List(ctx context.Context, rpath string, opt *storage.ListOptions) ([]storage.DirEntry, error) {
+	log(ctx).Infof("[RCLONE] List %s, options %+v", rpath, opt)
 	rpath = normalizeRemotePath(rpath)
-	obj, err := s.f.NewObject(ctx, rpath)
-	if err == nil {
-		entry := storage.NewStaticDirEntry(false, filepath.Base(obj.Remote()),
-			obj.Remote(), obj.Size(), obj.ModTime(ctx))
-		return []storage.DirEntry{entry}, nil
+
+	// set UseServerModTime to true to reduce the number of API calls
+	var ci *fs.ConfigInfo
+	ctx, ci = fs.AddConfig(ctx)
+	ci.UseServerModTime = true
+
+	var err error
+	if !strings.HasSuffix(rpath, "/") {
+		var obj fs.Object
+		obj, err = s.f.NewObject(ctx, rpath)
+		if err == nil {
+			entry := storage.NewStaticDirEntry(false, filepath.Base(obj.Remote()),
+				obj.Remote(), obj.Size(), obj.ModTime(ctx))
+			if opt.Callback != nil {
+				err = opt.Callback(entry)
+				if err != nil {
+					return nil, fmt.Errorf("interrupted by error: %w", err)
+				}
+				return nil, nil
+			}
+			return []storage.DirEntry{entry}, nil
+		}
 	}
+
+	if opt.PathIsFile {
+		if errors.Is(err, fs.ErrorObjectNotFound) {
+			return nil, storage.ErrObjectNotFound
+		}
+		if strings.HasSuffix(rpath, "/") {
+			return nil, storage.ErrIsDir
+		}
+		return nil, err
+	}
+
 	var result []storage.DirEntry
 	err = s.list(ctx, rpath, opt, func(item *operations.ListJSONItem) error {
 		en := storage.NewStaticDirEntry(item.IsDir, item.Name, item.Path, item.Size, item.ModTime.When)
-		result = append(result, en)
+		if opt.Callback != nil {
+			return opt.Callback(en)
+		} else {
+			result = append(result, en)
+		}
 		return nil
 	})
+	if errors.Is(err, fs.ErrorDirNotFound) {
+		return nil, storage.ErrDirNotFound
+	}
 	return result, err
 }
 
 func (s *rcloneStorage) Stat(ctx context.Context, rpath string) (storage.StatResult, error) {
 	rpath = normalizeRemotePath(rpath)
-	obj, err := s.f.NewObject(ctx, rpath)
-	if err == nil {
-		return storage.StatResult{
-			TotalSize: obj.Size(),
-			Entries:   1,
-			Files:     1,
-		}, nil
+	if !strings.HasSuffix(rpath, "/") {
+		obj, err := s.f.NewObject(ctx, rpath)
+		if err == nil {
+			return storage.StatResult{
+				TotalSize: obj.Size(),
+				Entries:   1,
+				Files:     1,
+			}, nil
+		}
 	}
 
 	opt := &storage.ListOptions{
 		Recursive: true,
 	}
 	var result storage.StatResult
-	err = s.list(ctx, rpath, opt, func(item *operations.ListJSONItem) error {
+	err := s.list(ctx, rpath, opt, func(item *operations.ListJSONItem) error {
 		if item.IsBucket {
 			// ignore buckets
 			return nil
@@ -184,12 +245,9 @@ func (s *rcloneStorage) Stat(ctx context.Context, rpath string) (storage.StatRes
 }
 
 func normalizeRemotePath(rpath string) string {
-	rpath = filepath.Clean(rpath)
-	rpath = strings.TrimPrefix(rpath, "./")
-	rpath = strings.TrimPrefix(rpath, "/")
 	if rpath == "." {
 		// rclone doesn't accept "." as a remote path
-		return ""
+		return "/"
 	}
 	return rpath
 }

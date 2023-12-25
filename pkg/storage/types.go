@@ -2,8 +2,15 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"io"
 	"time"
+)
+
+var (
+	ErrObjectNotFound = errors.New("object not found")
+	ErrDirNotFound    = errors.New("directory not found")
+	ErrIsDir          = errors.New("path is a directory")
 )
 
 type DirEntry interface {
@@ -15,10 +22,12 @@ type DirEntry interface {
 }
 
 type ListOptions struct {
-	DirsOnly  bool
-	FilesOnly bool
-	MaxDepth  int
-	Recursive bool
+	DirsOnly   bool
+	FilesOnly  bool
+	MaxDepth   int
+	Recursive  bool
+	PathIsFile bool
+	Callback   func(DirEntry) error
 }
 
 type StatResult struct {
@@ -54,14 +63,21 @@ type Storage interface {
 	// List lists the contents of the given path.
 	// The `rpath` parameter can also be a file, in this case the function
 	// will return a list with a single entry.
+	// It's recommended to add '/' to the end of `rpath` if it points to a directory.
+	// If a `Callback` is specified in the `ListOptions`, it will be called
+	// for each entry. In this case, the method returns an empty list. If the
+	// callback returns an error, the function will stop and return the error.
 	List(ctx context.Context, rpath string, opt *ListOptions) ([]DirEntry, error)
 
 	// Stat returns the information about the given path.
 	// The `rpath` parameter can be a file.
+	// It's recommended to add '/' to the end of `rpath` if it points to a directory.
 	Stat(ctx context.Context, rpath string) (StatResult, error)
 
-	// ReadObject reads a file.
-	ReadObject(ctx context.Context, rpath string) (io.ReadCloser, error)
+	// OpenFile returns a file reader for the given path.
+	// The `offset` and `length` parameters are used to specify the range
+	// of the file to read. If `length` is -1, the entire file will be read.
+	OpenFile(ctx context.Context, rpath string, offset int64, length int64) (io.ReadCloser, error)
 }
 
 type staticDirEntry struct {
