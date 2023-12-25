@@ -1,29 +1,27 @@
-## datasafed getconf
+## datasafed mkdir
 
-Get the value of the configuration item.
+Create an empty remote directory.
 
 ### Synopsis
 
-The pattern of the `item` parameter is "section.field".
+Remove an empty remote directory.
+Some storage backends, such as S3, do not have the concept of a directory, in which case the command will directly return success with no effect.
 
 ```
-datasafed getconf item [flags]
+datasafed mkdir rpath [flags]
 ```
 
 ### Examples
 
 ```
-# get the "type" field from the "storage" section
-datasafed getconf storage.type
-
-# get access_key_id (only available for S3 backend)
-datasafed getconf storage.access_key_id
+# Create an empty directory
+datasafed mkdir some/dir
 ```
 
 ### Options
 
 ```
-  -h, --help   help for getconf
+  -h, --help   help for mkdir
 ```
 
 ### Options inherited from parent commands
