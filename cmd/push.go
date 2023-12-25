@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"os"
@@ -40,7 +39,7 @@ func doPush(cmd *cobra.Command, args []string) {
 		defer f.Close()
 		in = f
 	}
-	err := globalStorage.Push(context.Background(), in, rpath)
+	err := globalStorage.Push(appCtx, in, rpath)
 	if err != nil {
 		err = fmt.Errorf("push to %q: %w", rpath, err)
 	}
