@@ -16,6 +16,8 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/apecloud/datasafed/pkg/util"
 )
 
 const logsDirMode = 0o700
@@ -48,10 +50,10 @@ func (c *loggingFlags) setup(cmd *cobra.Command) {
 	f.DurationVar(&c.logDirMaxAge, "log-dir-max-age", 720*time.Hour, "Maximum age of log files to retain")
 	f.Float64Var(&c.logDirMaxTotalSizeMB, "log-dir-max-total-size-mb", 1000, "Maximum total size of log files to retain")
 	f.IntVar(&c.logFileMaxSegmentSize, "max-log-file-segment-size", 50000000, "Maximum size of a single log file segment")
-	f.Var(newEnum(logLevels, &c.logLevel).Default("info"), "log-level", "Console log level")
+	f.Var(util.NewEnumVar(logLevels, &c.logLevel).Default("info"), "log-level", "Console log level")
 	f.BoolVar(&c.jsonLogConsole, "json-log-console", false, "JSON log file")
 	f.BoolVar(&c.jsonLogFile, "json-log-file", false, "JSON log file")
-	f.Var(newEnum(logLevels, &c.fileLogLevel).Default("debug"), "file-log-level", "File log level")
+	f.Var(util.NewEnumVar(logLevels, &c.fileLogLevel).Default("debug"), "file-log-level", "File log level")
 	f.BoolVar(&c.fileLogLocalTimezone, "file-log-local-tz", false, "When logging to a file, use local timezone")
 	f.BoolVar(&c.forceColor, "force-color", false, "Force color output")
 	f.BoolVar(&c.disableColor, "disable-color", false, "Disable color output")
@@ -445,49 +447,4 @@ func (w *onDemandFile) Write(b []byte) (int, error) {
 
 	//nolint:wrapcheck
 	return n, err
-}
-
-type enum struct {
-	Allowed  []string
-	variable *string
-}
-
-// newEnum give a list of allowed flag parameters
-func newEnum(allowed []string, variable *string) *enum {
-	if variable == nil {
-		panic("variable should not be nil")
-	}
-	return &enum{
-		Allowed:  allowed,
-		variable: variable,
-	}
-}
-
-func (a *enum) Default(d string) *enum {
-	*a.variable = d
-	return a
-}
-
-func (a enum) String() string {
-	return *a.variable
-}
-
-func (a *enum) Set(p string) error {
-	isIncluded := func(opts []string, val string) bool {
-		for _, opt := range opts {
-			if val == opt {
-				return true
-			}
-		}
-		return false
-	}
-	if !isIncluded(a.Allowed, p) {
-		return fmt.Errorf("%s is not included in %s", p, strings.Join(a.Allowed, ","))
-	}
-	*a.variable = p
-	return nil
-}
-
-func (a *enum) Type() string {
-	return "string"
 }
