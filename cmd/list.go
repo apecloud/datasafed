@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/apecloud/datasafed/pkg/storage"
+	"github.com/apecloud/datasafed/pkg/util"
 )
 
 var (
@@ -66,7 +67,7 @@ datasafed list --name "*.txt" /some/dir/
 	pflags.BoolVarP(&opts.filesOnly, "files-only", "f", false, "list files only")
 	pflags.BoolVarP(&opts.recursive, "recursive", "r", false, "list recursively")
 	pflags.IntVar(&opts.maxDepth, "max-depth", 0, "max depth when listing recursively")
-	pflags.StringVarP(&opts.sort, "sort", "s", "",
+	pflags.VarP(util.NewEnumVar(validSorts, &opts.sort), "sort", "s",
 		fmt.Sprintf("sort by which field, choices: %q, this option conflicts with --recursive", validSorts))
 	pflags.BoolVar(&opts.reverse, "reverse", false, "reverse order")
 	pflags.Int64Var(&opts.newer, "newer-than", 0,
@@ -75,7 +76,7 @@ datasafed list --name "*.txt" /some/dir/
 		"list only entries whose last modification time is older than the specified unix timestamp (exclusive)")
 	pflags.StringVar(&opts.namePattern, "name", "",
 		"list only entries whose name matches the specified pattern (https://pkg.go.dev/path/filepath#Match)")
-	pflags.StringVarP(&opts.format, "output-format", "o", "short",
+	pflags.VarP(util.NewEnumVar(validOutputFormats, &opts.format).Default("short"), "output-format", "o",
 		fmt.Sprintf("output format, choices: %q", validOutputFormats))
 
 	cmd.MarkFlagsMutuallyExclusive("dirs-only", "files-only")
@@ -85,12 +86,6 @@ datasafed list --name "*.txt" /some/dir/
 }
 
 func doList(opts *listOptions, cmd *cobra.Command, args []string) {
-	if opts.sort != "" && !slices.Contains(validSorts, opts.sort) {
-		exitIfError(fmt.Errorf("invalid sort: %q", opts.sort))
-	}
-	if !slices.Contains(validOutputFormats, opts.format) {
-		exitIfError(fmt.Errorf("invalid output format: %q", opts.format))
-	}
 	bufStdout := bufio.NewWriterSize(os.Stdout, 8*1024)
 	filter := getFilterFn(opts)
 	printer := getPrinter(opts, bufStdout)
