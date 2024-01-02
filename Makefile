@@ -2,7 +2,7 @@
 # Variables
 ##############################################################################
 APP_NAME = datasafed
-VERSION ?= 0.1.0
+VERSION ?= 0.0.6
 GITHUB_PROXY ?=
 GIT_COMMIT  = $(shell git rev-list -1 HEAD)
 GIT_VERSION = $(shell git describe --always --abbrev=0 --tag)
