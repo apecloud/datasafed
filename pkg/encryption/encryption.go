@@ -26,9 +26,6 @@ func CreateEncryptor(algorithm string, passPhrase []byte) (StreamEncryptor, erro
 // EncryptorFactory creates new Encryptor for given parameters.
 type EncryptorFactory func(passPhrase []byte) (StreamEncryptor, error)
 
-// DefaultAlgorithm is the name of the default encryption algorithm.
-const DefaultAlgorithm = "AES256-CFB"
-
 // SupportedAlgorithms returns the names of the supported encryption methods.
 func SupportedAlgorithms() []string {
 	var result []string

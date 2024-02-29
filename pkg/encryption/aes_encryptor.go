@@ -90,7 +90,7 @@ func NewAES256CFB(passPhrase []byte) (StreamEncryptor, error) {
 }
 
 func init() {
-	Register("AES128-CFB", "AES-128 with CFB mode", NewAES128CFB)
-	Register("AES192-CFB", "AES-192 with CFB mode", NewAES192CFB)
-	Register("AES256-CFB", "AES-256 with CFB mode", NewAES256CFB)
+	Register("AES-128-CFB", "AES-128 with CFB mode", NewAES128CFB)
+	Register("AES-192-CFB", "AES-192 with CFB mode", NewAES192CFB)
+	Register("AES-256-CFB", "AES-256 with CFB mode", NewAES256CFB)
 }

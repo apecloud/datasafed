@@ -74,9 +74,9 @@ func TestCiphertextSamples(t *testing.T) {
 
 			// samples of base16-encoded ciphertexts of payload encrypted with passPhrase
 			samples: map[string]string{
-				"AES128-CFB": "3f531b215a8b0774edeb5f07f451f811c6ba0b",
-				"AES192-CFB": "65cce058982cde6dec94ee7965c737bd2e9044",
-				"AES256-CFB": "cd68a8ba7e886f00326ebd9da560bfca0ad5c4",
+				"AES-128-CFB": "3f531b215a8b0774edeb5f07f451f811c6ba0b",
+				"AES-192-CFB": "65cce058982cde6dec94ee7965c737bd2e9044",
+				"AES-256-CFB": "cd68a8ba7e886f00326ebd9da560bfca0ad5c4",
 			},
 		},
 		{
@@ -85,9 +85,9 @@ func TestCiphertextSamples(t *testing.T) {
 
 			// samples of base16-encoded ciphertexts of payload encrypted with passPhrase
 			samples: map[string]string{
-				"AES128-CFB": "a4fd5ed9b98b780f09c3253dadd81e9b96b52f3fbe215ab0b43e88df82457b5eb4209bdabe4d8edf045763d17807ea559f4d1e316edc9b",
-				"AES192-CFB": "6d9cfd25a3b5f2299534c87cd6f61f16c153178e74496d9b6b67f351d9c2a4a7c1514a5a4b42efe945ac56baea71f1dff51df9dc40a8a4",
-				"AES256-CFB": "9456421484adb715d7f6b52663908dd1acf16848077df01942847cc0e835a627c8b5c704b465ea86f47afd4e359c097582e81a544fdbd1",
+				"AES-128-CFB": "a4fd5ed9b98b780f09c3253dadd81e9b96b52f3fbe215ab0b43e88df82457b5eb4209bdabe4d8edf045763d17807ea559f4d1e316edc9b",
+				"AES-192-CFB": "6d9cfd25a3b5f2299534c87cd6f61f16c153178e74496d9b6b67f351d9c2a4a7c1514a5a4b42efe945ac56baea71f1dff51df9dc40a8a4",
+				"AES-256-CFB": "9456421484adb715d7f6b52663908dd1acf16848077df01942847cc0e835a627c8b5c704b465ea86f47afd4e359c097582e81a544fdbd1",
 			},
 		},
 	}
