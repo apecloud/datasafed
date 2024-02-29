@@ -77,7 +77,7 @@ func doPush(opts *pushOptions, cmd *cobra.Command, args []string) {
 		pr, pw := io.Pipe()
 		go func(r io.Reader) {
 			// discard compression header
-			err := c.Compress(util.DiscardN(pw, compressionHeaderSize), r)
+			err := c.Compress(util.DiscardNWriter(pw, compressionHeaderSize), r)
 			pw.CloseWithError(err)
 		}(in)
 		in = pr

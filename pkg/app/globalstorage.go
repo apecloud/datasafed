@@ -8,13 +8,17 @@ import (
 	"strings"
 
 	"github.com/apecloud/datasafed/pkg/config"
+	"github.com/apecloud/datasafed/pkg/encryption"
 	"github.com/apecloud/datasafed/pkg/storage"
+	"github.com/apecloud/datasafed/pkg/storage/encrypted"
 	"github.com/apecloud/datasafed/pkg/storage/kopia"
 	"github.com/apecloud/datasafed/pkg/storage/rclone"
 )
 
 const (
 	backendBasePathEnv   = "DATASAFED_BACKEND_BASE_PATH"
+	encryptionAlgorithm  = "DATASAFED_ENCRYPTION_ALGORITHM"
+	encryptionPassPhrase = "DATASAFED_ENCRYPTION_PASS_PHRASE"
 	kopiaRepoRootEnv     = "DATASAFED_KOPIA_REPO_ROOT"
 	kopiaPasswordEnv     = "DATASAFED_KOPIA_PASSWORD"
 	kopiaDisableCacheEnv = "DATASAFED_KOPIA_DISABLE_CACHE"
@@ -36,15 +40,37 @@ func InitGlobalStorage(ctx context.Context, configFile string) error {
 	storageConf := config.GetGlobal().GetAll(config.StorageSection)
 
 	if kopiaRoot := strings.TrimSpace(os.Getenv(kopiaRepoRootEnv)); kopiaRoot != "" {
-		return initKopiaStorage(ctx, storageConf, basePath, kopiaRoot)
+		err := initKopiaStorage(ctx, storageConf, basePath, kopiaRoot)
+		if err != nil {
+			return err
+		}
 	} else {
 		st, err := createStorage(ctx, storageConf, basePath)
 		if err != nil {
 			return err
 		}
 		globalStorage = st
-		return nil
 	}
+
+	// wrap with encryptedStorage
+	encAlgo := os.Getenv(encryptionAlgorithm)
+	if encAlgo != "" {
+		encPass := os.Getenv(encryptionPassPhrase)
+		if encPass == "" {
+			return fmt.Errorf("encryption pass phrase should not be empty")
+		}
+		enc, err := encryption.CreateEncryptor(encAlgo, []byte(encPass))
+		if err != nil {
+			return err
+		}
+		encSt, err := encrypted.New(ctx, enc, globalStorage)
+		if err != nil {
+			return err
+		}
+		globalStorage = encSt
+	}
+
+	return nil
 }
 
 func GetGlobalStorage() (storage.Storage, error) {
