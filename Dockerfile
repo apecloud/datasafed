@@ -1,9 +1,9 @@
 # Build the manager binary
-ARG DIST_IMG=alpine:3.18
+ARG DIST_IMG=alpine:3.22
 
-ARG GO_VERSION=1.21
+ARG GO_VERSION=1.23
 
-FROM --platform=${BUILDPLATFORM} golang:${GO_VERSION} as builder
+FROM --platform=${BUILDPLATFORM} golang:${GO_VERSION} AS builder
 
 ## docker buildx build injected build-args:
 #BUILDPLATFORM — matches the current machine. (e.g. linux/amd64)
@@ -38,7 +38,7 @@ RUN --mount=type=bind,target=. \
     go env && \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} BUILD_DIR=/out make datasafed
 
-FROM ${DIST_IMG} as dist
+FROM ${DIST_IMG} AS dist
 
 WORKDIR /
 COPY --from=builder /out/datasafed .
