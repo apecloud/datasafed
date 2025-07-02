@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,6 +36,14 @@ type rcloneStorage struct {
 var _ storage.Storage = (*rcloneStorage)(nil)
 
 func New(ctx context.Context, cfg map[string]string, basePath string) (storage.Storage, error) {
+	// handle rclone global flags
+	if noCheckCertificate, _ := strconv.ParseBool(cfg["no_check_certificate"]); noCheckCertificate {
+		var ci *fs.ConfigInfo
+		ctx, ci = fs.AddConfig(ctx)
+		ci.InsecureSkipVerify = true
+		delete(cfg, "no_check_certificate")
+	}
+
 	rcloneCfg := config.Data()
 	for k, v := range cfg {
 		rcloneCfg.SetValue(remoteName, k, v)
