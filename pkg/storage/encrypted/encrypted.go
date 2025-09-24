@@ -138,7 +138,7 @@ func (s *encryptedStorage) List(ctx context.Context, rpath string, opt *storage.
 	if opt.PathIsFile {
 		// list a file
 		return s.underlying.List(ctx, rpath+encryptedFileSuffix, opt, myCb)
-	} else if strings.HasSuffix(rpath, "/") {
+	} else if strings.HasSuffix(rpath, "/") || rpath == "." {
 		// rpath is a folder
 		return s.underlying.List(ctx, rpath, opt, myCb)
 	} else {
