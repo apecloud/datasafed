@@ -12,6 +12,8 @@ import (
 	"github.com/apecloud/datasafed/pkg/storage"
 )
 
+var errInvalidPath = errors.New("invalid path")
+
 var log = logging.Module("storage/sanitized")
 
 type sanitizedStorage struct {
@@ -30,13 +32,17 @@ func New(ctx context.Context, basePath string, underlying storage.Storage) (stor
 	}, nil
 }
 
+func pathError(format string, args ...any) error {
+	return fmt.Errorf("%w: %s", errInvalidPath, fmt.Sprintf(format, args...))
+}
+
 func verifiedBasePath(basePath string) (string, error) {
 	if basePath == "" {
 		return "", nil
 	}
 	basePath = filepath.Clean(basePath)
 	if strings.HasPrefix(basePath, "..") {
-		return "", fmt.Errorf("base path %q prefixed with '..'", basePath)
+		return "", pathError("base path %q prefixed with '..'", basePath)
 	}
 	if basePath == "." {
 		basePath = ""
@@ -51,7 +57,7 @@ func (s *sanitizedStorage) relocate(rpath string) (string, error) {
 	rpath = filepath.Clean(rpath)
 	rpath = strings.TrimPrefix(rpath, "./")
 	rpath = strings.TrimPrefix(rpath, "/")
-	if strings.HasPrefix(rpath, "..") {
+	if rpath == ".." || strings.HasPrefix(rpath, "../") {
 		return "", fmt.Errorf("prefixed with '..'")
 	}
 	if s.basePath == "" {
@@ -62,22 +68,22 @@ func (s *sanitizedStorage) relocate(rpath string) (string, error) {
 
 func (s *sanitizedStorage) Push(ctx context.Context, r io.Reader, rpath string) error {
 	if strings.HasSuffix(rpath, "/") {
-		return fmt.Errorf("rpath %q ends with '/'", rpath)
+		return pathError("rpath %q ends with '/'", rpath)
 	}
 	relocatedPath, err := s.relocate(rpath)
 	if err != nil {
-		return fmt.Errorf("invalid rpath %q: %w", rpath, err)
+		return pathError("invalid rpath %q: %s", rpath, err)
 	}
 	return s.underlying.Push(ctx, r, relocatedPath)
 }
 
 func (s *sanitizedStorage) Pull(ctx context.Context, rpath string, w io.Writer) error {
 	if strings.HasSuffix(rpath, "/") {
-		return fmt.Errorf("rpath %q ends with '/'", rpath)
+		return pathError("rpath %q ends with '/'", rpath)
 	}
 	relocatedPath, err := s.relocate(rpath)
 	if err != nil {
-		return fmt.Errorf("invalid rpath %q: %w", rpath, err)
+		return pathError("invalid rpath %q: %s", rpath, err)
 	}
 	return s.underlying.Pull(ctx, relocatedPath, w)
 }
@@ -85,7 +91,7 @@ func (s *sanitizedStorage) Pull(ctx context.Context, rpath string, w io.Writer) 
 func (s *sanitizedStorage) Remove(ctx context.Context, rpath string, recursive bool) error {
 	relocatedPath, err := s.relocate(rpath)
 	if err != nil {
-		return fmt.Errorf("invalid rpath %q: %w", rpath, err)
+		return pathError("invalid rpath %q: %s", rpath, err)
 	}
 	return s.underlying.Remove(ctx, relocatedPath, recursive)
 }
@@ -93,7 +99,7 @@ func (s *sanitizedStorage) Remove(ctx context.Context, rpath string, recursive b
 func (s *sanitizedStorage) Rmdir(ctx context.Context, rpath string) error {
 	relocatedPath, err := s.relocate(rpath)
 	if err != nil {
-		return fmt.Errorf("invalid rpath %q: %w", rpath, err)
+		return pathError("invalid rpath %q: %s", rpath, err)
 	}
 	return s.underlying.Rmdir(ctx, relocatedPath)
 }
@@ -101,7 +107,7 @@ func (s *sanitizedStorage) Rmdir(ctx context.Context, rpath string) error {
 func (s *sanitizedStorage) Mkdir(ctx context.Context, rpath string) error {
 	relocatedPath, err := s.relocate(rpath)
 	if err != nil {
-		return fmt.Errorf("invalid rpath %q: %w", rpath, err)
+		return pathError("invalid rpath %q: %s", rpath, err)
 	}
 	return s.underlying.Mkdir(ctx, relocatedPath)
 }
@@ -120,13 +126,13 @@ func (s *sanitizedStorage) adjustPath(ctx context.Context, e storage.DirEntry) s
 
 func (s *sanitizedStorage) List(ctx context.Context, rpath string, opt *storage.ListOptions, cb storage.ListCallback) error {
 	if opt.PathIsFile && strings.HasSuffix(rpath, "/") {
-		return fmt.Errorf("rpath %q ends with '/', but PathIsFile is true", rpath)
+		return pathError("rpath %q ends with '/', but PathIsFile is true", rpath)
 	}
 	originalRpath := rpath
 	isDir := strings.HasSuffix(rpath, "/")
 	relocatedPath, err := s.relocate(rpath)
 	if err != nil {
-		return fmt.Errorf("invalid rpath %q: %w", rpath, err)
+		return pathError("invalid rpath %q: %s", rpath, err)
 	}
 	if isDir {
 		relocatedPath += "/"
@@ -148,7 +154,7 @@ func (s *sanitizedStorage) Stat(ctx context.Context, rpath string) (storage.Stat
 	isDir := strings.HasSuffix(rpath, "/")
 	relocatedPath, err := s.relocate(rpath)
 	if err != nil {
-		return storage.StatResult{}, fmt.Errorf("invalid rpath %q: %w", rpath, err)
+		return storage.StatResult{}, pathError("invalid rpath %q: %s", rpath, err)
 	}
 	if isDir {
 		relocatedPath += "/"
@@ -158,11 +164,11 @@ func (s *sanitizedStorage) Stat(ctx context.Context, rpath string) (storage.Stat
 
 func (s *sanitizedStorage) OpenFile(ctx context.Context, rpath string, offset int64, length int64) (io.ReadCloser, error) {
 	if strings.HasSuffix(rpath, "/") {
-		return nil, fmt.Errorf("rpath %q ends with '/'", rpath)
+		return nil, pathError("rpath %q ends with '/'", rpath)
 	}
 	relocatedPath, err := s.relocate(rpath)
 	if err != nil {
-		return nil, fmt.Errorf("invalid rpath %q: %w", rpath, err)
+		return nil, pathError("invalid rpath %q: %s", rpath, err)
 	}
 	return s.underlying.OpenFile(ctx, relocatedPath, offset, length)
 }
