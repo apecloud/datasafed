@@ -43,7 +43,7 @@ func RunMaintenance(ctx context.Context, st storage.Storage, safety string) erro
 		Purpose: "datasafed:maintenance",
 	}, func(ctx context.Context, dw repo.DirectRepositoryWriter) error {
 		mode := maintenance.ModeQuick
-		_, supportsEpochManager, err := dw.ContentManager().EpochManager()
+		_, supportsEpochManager, err := dw.ContentManager().EpochManager(ctx)
 		if err != nil {
 			return fmt.Errorf("EpochManager error: %w", err)
 		}
