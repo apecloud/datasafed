@@ -169,7 +169,7 @@ func setDefaultMaintenanceParameters(ctx context.Context, rep repo.RepositoryWri
 	p.Owner = rep.ClientOptions().UsernameAtHost()
 
 	if dw, ok := rep.(repo.DirectRepositoryWriter); ok {
-		_, ok, err := dw.ContentReader().EpochManager(ctx)
+		_, ok, err := dw.ContentReader().EpochManager()
 		if err != nil {
 			return fmt.Errorf("epoch manager, %w", err)
 		}
