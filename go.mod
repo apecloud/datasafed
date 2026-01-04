@@ -4,7 +4,7 @@ go 1.24.11
 
 require (
 	github.com/fatih/color v1.16.0
-	github.com/kopia/kopia v0.15.0
+	github.com/kopia/kopia v0.16.0
 	github.com/pkg/errors v0.9.1
 	github.com/rclone/rclone v1.72.1
 	github.com/spf13/cobra v1.10.1
@@ -138,7 +138,7 @@ require (
 	github.com/klauspost/compress v1.18.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
-	github.com/klauspost/reedsolomon v1.11.8 // indirect
+	github.com/klauspost/reedsolomon v1.12.1 // indirect
 	github.com/koofr/go-httpclient v0.0.0-20240520111329-e20f8f203988 // indirect
 	github.com/koofr/go-koofrclient v0.0.0-20221207135200-cbd7fc9ad6a6 // indirect
 	github.com/kr/fs v0.1.0 // indirect
@@ -153,6 +153,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.19 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/mxk/go-vss v1.2.0 // indirect
 	github.com/natefinch/atomic v1.0.1 // indirect
 	github.com/ncw/swift/v2 v2.0.5 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
