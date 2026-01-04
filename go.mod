@@ -1,8 +1,6 @@
 module github.com/apecloud/datasafed
 
-go 1.24.4
-
-toolchain go1.24.11
+go 1.24.11
 
 require (
 	github.com/fatih/color v1.16.0
